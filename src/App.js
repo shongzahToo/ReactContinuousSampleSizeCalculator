@@ -1,8 +1,10 @@
 import InputField from "./components/input.js";
 import './App.css';
 import { useEffect, useRef, useMemo } from "react";
+// Context for sharing input-related methods across components
 import { InputContext } from "./InputContext.js";
 
+// Helper method for calculating Z-Score
 function NORMSINV(p) {
     const a1 = -3.969683028665376e1, a2 = 2.209460984245205e2, a3 = -2.759285104469687e2,
           a4 = 1.38357751867269e2, a5 = -3.066479806614716e1, a6 = 2.506628277459239;
@@ -33,58 +35,63 @@ function NORMSINV(p) {
   }
 
 function App() {
+  //ref object for all user input and for the output element
   let inputData = useRef({});
   let output = useRef(null);
 
+  // Calculates and updates the results based on inputs
   function UpdateOutputs() {
+    // Gathers all user input data
     let InputData = inputData.current
-    const confidence = Number(InputData.confidence?._ || 0);
-    const power = Number(InputData.Power?._ || 0);
-    const mde = Number(InputData.MDE?._ || 0);
-    const tails = Number(InputData.Tails?._ || 1);
-    const testVariants = Number(InputData.TestVars?._ || 1);
-    const meanvalue = Number(InputData.MeanVal?._ || 0);
-    const stdev = Number(InputData.StDev?._ || 0);
-    const dailyTraffic = Number(InputData.DailyTraffic?._ || 0);
+    const confidence = Number(InputData.confidence || 0);
+    
+    const power = Number(InputData.Power || 0);
+    const mde = Number(InputData.MDE || 0);
+    const tails = Number(InputData.Tails || 1);
+    const testVariants = Number(InputData.TestVars || 1);
+    const meanvalue = Number(InputData.MeanVal || 0);
+    const stdev = Number(InputData.StDev || 0);
+    const dailyTraffic = Number(InputData.DailyTraffic || 0);
 
-    const zAlpha = NORMSINV(1 - ((1 - confidence) / tails));
-    const zBeta = NORMSINV(power);
-    const estimatedTestAverage = meanvalue * (1 + mde);
-    const numerator = Math.pow(zAlpha + zBeta, 2) * 2 * Math.pow(stdev, 2);
-    const denominator = Math.pow(estimatedTestAverage - meanvalue, 2);
-    const sampleSizeReqPerRecipe = numerator / denominator;
-    const totalSampleSizeReq = sampleSizeReqPerRecipe * (testVariants + 1);
+    // Calculates needed information
+    try {
+      const zAlpha = NORMSINV(1 - ((1 - confidence) / tails));
+      const zBeta = NORMSINV(power);
+      const estimatedTestAverage = meanvalue * (1 + mde);
+      const numerator = Math.pow(zAlpha + zBeta, 2) * 2 * Math.pow(stdev, 2);
+      const denominator = Math.pow(estimatedTestAverage - meanvalue, 2);
+      const sampleSizeReqPerRecipe = numerator / denominator;
+      const totalSampleSizeReq = sampleSizeReqPerRecipe * (testVariants + 1);
 
-    let duration = "N/A";
-    if (dailyTraffic > 0) {
-      duration = Math.ceil(totalSampleSizeReq / dailyTraffic) + " Days";
-    } else {
-      duration = "Provide daily traffic for estimated duration";
+      //Outputs information to the output element
+      let duration = "N/A";
+      if (dailyTraffic > 0) {
+        duration = Math.ceil(totalSampleSizeReq / dailyTraffic) + " Days";
+      } else {
+        duration = "Provide daily traffic for estimated duration";
+      }
+
+      output.current.innerHTML = `
+        <b>Estimated Test Average:</b> ${estimatedTestAverage.toFixed(4)}<br/>
+        <b>Sample Size per Recipe:</b> ${sampleSizeReqPerRecipe.toFixed(2)}<br/>
+        <b>Total Sample Size:</b> ${totalSampleSizeReq.toFixed(2)}<br/>
+        <b>Estimated Duration:</b> ${duration}
+      `;
+    } catch {
+      output.current.innerHTML = `<b>Invalid Input Data</b>`
     }
-
-    output.current.innerHTML = `
-      <b>Estimated Test Average:</b> ${estimatedTestAverage.toFixed(4)}<br/>
-      <b>Sample Size per Recipe:</b> ${sampleSizeReqPerRecipe.toFixed(2)}<br/>
-      <b>Total Sample Size:</b> ${totalSampleSizeReq.toFixed(2)}<br/>
-      <b>Estimated Duration:</b> ${duration}
-    `;
+    
   } 
 
+  // Registers input fields in the InputData object
   function RegisterInput(field, DefaultValue) {
-    inputData.current[field] = {
-      value: DefaultValue,
-      get _() {
-        return this.value;
-      },
-      set _(value) {
-        this.value = value;
-        UpdateOutputs();
-      },
-    };
+    inputData.current[field] = DefaultValue
   }
 
+
   function CallBack(field, value) {
-    inputData.current[field]._ = value;
+    inputData.current[field] = value;
+    UpdateOutputs()
   }
   
   // eslint-disable-next-line
