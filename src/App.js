@@ -123,8 +123,8 @@ function App() {
             <InputField FieldLabel="Daily Traffic (optional):" DefaultValue={0} FieldName="DailyTraffic" />
           </div>
 
-          <div className="output" ref={output}></div>
         </div>
+          <div className="output" ref={output}></div>
       </div>
 
     </InputContext.Provider>
